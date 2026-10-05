@@ -1,5 +1,7 @@
 # paste-preview
 
+[![CI](https://github.com/0010aor/claude-paste-preview/actions/workflows/ci.yml/badge.svg)](https://github.com/0010aor/claude-paste-preview/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/0010aor/claude-paste-preview)](https://github.com/0010aor/claude-paste-preview/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 See the images you paste into Claude Code before you send them.
 
 Claude Code shows a pasted image only as an `[Image #N]` tag, so it's easy to attach the wrong screenshot. With this plugin, every image in your draft gets a label next to the prompt and a small preview window:
