@@ -11,8 +11,23 @@ helper_source=""
 marketplace="$REPO"
 action="install"
 
-say() { printf '%s\n' "$*"; }
-fail() { printf 'install.sh: %s\n' "$*" >&2; exit 1; }
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  bold=$(printf '\033[1m') dim=$(printf '\033[2m') green=$(printf '\033[32m') red=$(printf '\033[31m') reset=$(printf '\033[0m')
+else
+  bold="" dim="" green="" red="" reset=""
+fi
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+  *UTF-8* | *utf8* | *UTF8* | *utf-8*) mark_ok="✓" mark_info="•" mark_fail="✗" ;;
+  *) mark_ok="ok" mark_info="--" mark_fail="!!" ;;
+esac
+
+title() { printf '\n%s%s%s\n\n' "$bold" "$1" "$reset"; }
+step() { printf '  %s%s%s %s%s\n' "$1" "$2" "$reset" "$3" "${4:+ $dim$4$reset}"; }
+done_step() { step "$green" "$mark_ok" "$1" "${2:-}"; }
+note_step() { step "$dim" "$mark_info" "$1" "${2:-}"; }
+finish() { printf '\n%s\n\n' "$1"; }
+fail() { printf '\n  %s%s %s%s\n\n' "$red" "$mark_fail" "$1" "$reset" >&2; exit 1; }
+tilde() { case "$1" in "$HOME"/*) printf '~%s' "${1#"$HOME"}" ;; *) printf '%s' "$1" ;; esac; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,7 +39,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-command -v claude >/dev/null 2>&1 || fail "Claude Code (claude) is not on PATH"
+command -v claude >/dev/null 2>&1 || fail "Claude Code (claude) is not on PATH. Install it first: https://claude.com/claude-code"
 
 release_asset() {
   case "$(uname -s)-$(uname -m)" in
@@ -37,8 +52,8 @@ release_asset() {
 }
 
 download() {
-  if command -v curl >/dev/null 2>&1; then curl -fsSL "$1" -o "$2"
-  elif command -v wget >/dev/null 2>&1; then wget -q "$1" -O "$2"
+  if command -v curl >/dev/null 2>&1; then curl -fsSL "$1" -o "$2" || fail "could not download $1"
+  elif command -v wget >/dev/null 2>&1; then wget -q "$1" -O "$2" || fail "could not download $1"
   else fail "need curl or wget to download the helper"
   fi
 }
@@ -47,51 +62,57 @@ verify_checksum() {
   file="$1" expected="$2"
   if command -v sha256sum >/dev/null 2>&1; then actual=$(sha256sum "$file" | cut -d' ' -f1)
   elif command -v shasum >/dev/null 2>&1; then actual=$(shasum -a 256 "$file" | cut -d' ' -f1)
-  else say "Warning: no sha256sum or shasum; skipping the checksum check."; return
+  else return 1
   fi
-  [ "$actual" = "$expected" ] || fail "checksum mismatch for the downloaded helper"
+  [ "$actual" = "$expected" ] || fail "the downloaded helper failed its checksum; nothing was installed"
 }
 
 install_helper() {
   mkdir -p "$BIN_DIR"
+  detail="from your local build"
   if [ -n "$helper_source" ]; then
     cp "$helper_source" "$HELPER.tmp"
   else
-    asset=$(release_asset)
-    url="https://github.com/$REPO/releases/latest/download/$asset"
+    url="https://github.com/$REPO/releases/latest/download/$(release_asset)"
     download "$url" "$HELPER.tmp"
     download "$url.sha256" "$HELPER.sha256"
-    verify_checksum "$HELPER.tmp" "$(cut -d' ' -f1 "$HELPER.sha256")"
+    if verify_checksum "$HELPER.tmp" "$(cut -d' ' -f1 "$HELPER.sha256")"; then detail="checksum verified"
+    else detail="no sha256 tool found, checksum not checked"
+    fi
     rm -f "$HELPER.sha256"
   fi
   chmod +x "$HELPER.tmp"
   mv "$HELPER.tmp" "$HELPER"
-  say "Installed $("$HELPER" --version) to $HELPER"
+  done_step "Installed $("$HELPER" --version)" "($detail, $(tilde "$HELPER"))"
 }
 
 provide_xclip_if_missing() {
   if command -v xclip >/dev/null 2>&1 || command -v wl-paste >/dev/null 2>&1; then
-    say "Found xclip or wl-paste already; Ctrl+V keeps using it."
+    note_step "Ctrl+V keeps using your existing xclip or wl-paste"
     return
   fi
   ln -sf "$HELPER" "$BIN_DIR/xclip"
-  say "No xclip or wl-paste found: $BIN_DIR/xclip now points at the helper, so Ctrl+V pastes images."
+  done_step "Enabled Ctrl+V image paste" "($(tilde "$BIN_DIR/xclip") points at the helper)"
 }
 
 install_plugin() {
-  claude plugin marketplace add "$marketplace" >/dev/null
-  claude plugin install "$PLUGIN" >/dev/null
-  say "Installed the $PLUGIN Claude Code plugin."
+  claude plugin marketplace add "$marketplace" >/dev/null 2>&1 || true
+  claude plugin install "$PLUGIN" >/dev/null || fail "Claude Code could not install the plugin"
+  done_step "Installed the paste-preview plugin in Claude Code"
 }
 
 uninstall() {
+  title "Removing paste-preview"
   claude plugin uninstall "$PLUGIN" >/dev/null 2>&1 || true
   claude plugin marketplace remove paste-preview >/dev/null 2>&1 || true
+  done_step "Removed the plugin from Claude Code"
   if [ "$(readlink "$BIN_DIR/xclip" 2>/dev/null)" = "$HELPER" ]; then
     rm -f "$BIN_DIR/xclip"
+    done_step "Removed the xclip link" "($(tilde "$BIN_DIR/xclip"))"
   fi
   rm -f "$HELPER"
-  say "Removed the plugin and the helper."
+  done_step "Removed the helper" "($(tilde "$HELPER"))"
+  finish "paste-preview is uninstalled."
 }
 
 if [ "$action" = "uninstall" ]; then
@@ -99,6 +120,7 @@ if [ "$action" = "uninstall" ]; then
   exit 0
 fi
 
+title "Installing paste-preview for Claude Code"
 case "$(uname -s)" in
   Linux)
     install_helper
@@ -108,4 +130,4 @@ case "$(uname -s)" in
   *) fail "on Windows, run install.ps1 in PowerShell instead" ;;
 esac
 install_plugin
-say "Done. Restart Claude Code and paste an image."
+finish "${bold}Done.${reset} Restart Claude Code, then paste an image with Ctrl+V."
