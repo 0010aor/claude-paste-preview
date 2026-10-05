@@ -2,18 +2,17 @@
 
 See the images you paste into Claude Code before you send them.
 
-Claude Code shows a pasted image only as an `[Image #N]` tag, so it's easy to attach the wrong screenshot. With this plugin, a row above the prompt lists every image in your draft:
+Claude Code shows a pasted image only as an `[Image #N]` tag, so it's easy to attach the wrong screenshot. With this plugin, every image in your draft gets a label next to the prompt and a small preview window:
 
-```
-Image #1  Image #2
-❯ compare [Image #1] with [Image #2]
-```
+![Claude Code with an Image #1 label above the prompt and a small preview of the pasted image beside the terminal](docs/screenshot.png)
 
 - **Pasting** an image opens a small preview of every image in your draft, side by side. Click the preview (it has a × in its corner) to close it; it stays closed until you paste another image.
 - **Click** any label to open or close the preview.
 - The row clears, and any preview closes, when you send the prompt or remove the image from the draft.
 
 On Linux it also makes **Ctrl+V image paste work without installing `xclip` or `wl-clipboard`**.
+
+It works in any terminal, including inside [herdr](https://github.com/herdrdev/herdr): the preview is its own window, so it doesn't depend on the terminal's image support.
 
 ## Install
 
