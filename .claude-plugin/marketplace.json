@@ -1,0 +1,16 @@
+{
+  "name": "paste-preview",
+  "owner": {
+    "name": "Andres"
+  },
+  "plugins": [
+    {
+      "name": "paste-preview",
+      "source": "./plugins/paste-preview",
+      "description": "Preview the images you paste into Claude Code: hover a label above the prompt, click to open"
+    }
+  ],
+  "metadata": {
+    "description": "Preview the images you paste into Claude Code: hover a label above the prompt, click to open"
+  }
+}

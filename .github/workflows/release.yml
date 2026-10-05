@@ -1,0 +1,50 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  helper:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            asset: claude-paste-helper-linux-x86_64
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            asset: claude-paste-helper-linux-aarch64
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            asset: claude-paste-helper-macos-arm64
+          - runner: macos-14
+            target: x86_64-apple-darwin
+            asset: claude-paste-helper-macos-x86_64
+          - runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            asset: claude-paste-helper-windows-x86_64.exe
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: rustup target add ${{ matrix.target }}
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+        working-directory: helper
+      - name: Package
+        shell: bash
+        run: |
+          built=helper/target/${{ matrix.target }}/release/claude-paste-helper
+          [ -f "$built.exe" ] && built="$built.exe"
+          cp "$built" "${{ matrix.asset }}"
+          if command -v sha256sum >/dev/null; then sha256sum "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
+          else shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"; fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.asset }}
+            ${{ matrix.asset }}.sha256

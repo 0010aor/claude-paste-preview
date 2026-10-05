@@ -1,0 +1,10 @@
+{
+  "name": "paste-preview",
+  "version": "0.1.0",
+  "description": "Preview the images you paste into Claude Code: hover a label above the prompt, click to open",
+  "author": {
+    "name": "Andres"
+  },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

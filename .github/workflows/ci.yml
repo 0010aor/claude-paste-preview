@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  helper:
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, macos-14, windows-2022]
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: helper
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo fmt --check
+      - run: cargo clippy --locked -- -D warnings
+      - run: cargo test --locked
+
+  plugin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: claude plugin validate .
+      - run: claude plugin validate plugins/paste-preview
+      - run: claude plugin test plugins/paste-preview
+
+  installer:
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: runner.os == 'Linux'
+        run: shellcheck install.sh tests/install_test.sh
+      - run: sh tests/install_test.sh
