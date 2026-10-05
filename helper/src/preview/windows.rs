@@ -53,8 +53,10 @@ fn primary_work_area() -> Monitor {
 fn to_bgrx(picture: &Rgb) -> Bgrx {
     let pixels = picture
         .pixels
-        .chunks_exact(3)
-        .flat_map(|rgb| [rgb[2], rgb[1], rgb[0], 0])
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .flat_map(|[red, green, blue]| [*blue, *green, *red, 0])
         .collect();
     Bgrx {
         width: picture.width as i32,

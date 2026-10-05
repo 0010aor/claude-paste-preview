@@ -138,8 +138,8 @@ pub fn read(selection: &str, target: &str) -> Result<Vec<u8>> {
 
 fn list_targets(display: &Display, data: &[u8]) -> Result<Vec<u8>> {
     let mut names = String::new();
-    for word in data.chunks_exact(4) {
-        names.push_str(&display.atom_name(u32::from_ne_bytes(word.try_into()?))?);
+    for word in data.as_chunks::<4>().0 {
+        names.push_str(&display.atom_name(u32::from_ne_bytes(*word))?);
         names.push('\n');
     }
     Ok(names.into_bytes())

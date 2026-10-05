@@ -56,9 +56,9 @@ fn native_image(display: &Display, screen: &Screen, picture: &Rgb) -> Result<Ima
         screen.root_depth,
         display.conn.setup(),
     )?;
-    for (index, pixel) in picture.pixels.chunks_exact(3).enumerate() {
+    for (index, [red, green, blue]) in picture.pixels.as_chunks::<3>().0.iter().enumerate() {
         let widen = |channel: u8| u16::from(channel) * 257;
-        let encoded = layout.encode((widen(pixel[0]), widen(pixel[1]), widen(pixel[2])));
+        let encoded = layout.encode((widen(*red), widen(*green), widen(*blue)));
         image.put_pixel(
             (index as u32 % picture.width) as u16,
             (index as u32 / picture.width) as u16,

@@ -8,6 +8,7 @@ on:
 jobs:
   helper:
     strategy:
+      fail-fast: false
       matrix:
         runner: [ubuntu-24.04, macos-14, windows-2022]
     runs-on: ${{ matrix.runner }}
@@ -31,6 +32,7 @@ jobs:
 
   installer:
     strategy:
+      fail-fast: false
       matrix:
         runner: [ubuntu-24.04, macos-14]
     runs-on: ${{ matrix.runner }}
